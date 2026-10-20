@@ -1184,19 +1184,18 @@ typedef enum {
 	COVER_BUILD_FAILED, // a picture was found, none of them would decode
 } cover_build_t;
 
-static cover_build_t build_from_sources(const char *path, bool is_dir, const image_request_t *reqs, int n,
-										cover_image_t *outs) {
+// A caller's say over each candidate's bytes: the thumbnail picture cache can
+// answer with an image it already made, or retain one just built.
+typedef struct {
+	bool (*lookup)(void *ctx, const albumart_t *art, cover_image_t *outs);
+	void (*store)(void *ctx, const cover_image_t *outs);
+	void *ctx;
+} cover_source_hook_t;
+
+static cover_build_t build_from_sources_hooked(const char *path, bool is_dir, const image_request_t *reqs, int n,
+											  cover_image_t *outs, const cover_source_hook_t *hook) {
 	bool had_bytes = false;
-
-	// Noted for the crash handler and cleared on the way out, so a log that
-	// still names a file says the fault landed inside the decode rather than
-	// merely at the same moment as one -- which is as far as the log line
-	// printed below can settle it, since that one comes from this thread while
-	// the interface runs on another.
 	crumb_set_artwork(path);
-
-	// Zeroed here rather than only inside build_images: a path with no artwork
-	// at all never reaches that function, and the caller still reads these.
 	for (int i = 0; i < n; i++) {
 		memset(&outs[i], 0, sizeof(outs[i]));
 	}
@@ -1207,25 +1206,30 @@ static cover_build_t build_from_sources(const char *path, bool is_dir, const ima
 		if (!loaded) {
 			continue;
 		}
-
 		had_bytes = true;
-		bool ok = build_images_safely(art.data, art.size, reqs, n, outs);
+		bool ok = hook && hook->lookup(hook->ctx, &art, outs);
+		if (!ok) {
+			ok = build_images_safely(art.data, art.size, reqs, n, outs);
+			if (ok && hook) {
+				hook->store(hook->ctx, outs);
+			}
+		}
 		albumart_free(&art);
 		if (ok) {
 			crumb_set_artwork(NULL);
 			return COVER_BUILD_OK;
 		}
-
-		// A build reports on its first image only, so a failure can still have
-		// left a backdrop behind. Clear every slot before the next candidate
-		// overwrites the pointers.
 		for (int j = 0; j < n; j++) {
 			cover_free(&outs[j]);
 		}
 	}
-
 	crumb_set_artwork(NULL);
 	return had_bytes ? COVER_BUILD_FAILED : COVER_BUILD_NONE;
+}
+
+static cover_build_t build_from_sources(const char *path, bool is_dir, const image_request_t *reqs, int n,
+										cover_image_t *outs) {
+	return build_from_sources_hooked(path, is_dir, reqs, n, outs, NULL);
 }
 
 // ---------------------------------------------------------------------------
@@ -1781,59 +1785,41 @@ static void thumb_db_store(const char *key, const cover_image_t *img, bool has_i
 // starts with a letter that is not one.
 static void thumb_picture_key(char *out, size_t out_size, uint64_t id, int box) { snprintf(out, out_size, "p%016llx|%d", (unsigned long long)id, box); }
 
-// A track's thumbnail, decoded at most once per picture.
-//
-// The file keys are per path, so the dozen tracks of an album that all carry
-// the same embedded cover would otherwise be a dozen decodes the first time
-// the album is opened -- seconds each for a large progressive JPEG, which
-// TJpgDec cannot scale and stb_image decodes whole. Here the bytes the decode
-// would start from are identified first, and a thumbnail already made from the
-// same picture at the same size is taken instead. The candidates are walked
-// exactly as build_from_sources_at() walks them, and a picture key is only
-// written for the bytes an image was actually built from, so the answer is
-// the one the decode would have given.
+typedef struct {
+	int box;
+	char key[40];
+} thumb_picture_t;
+
+static bool thumb_picture_lookup(void *ctx, const albumart_t *art, cover_image_t *outs) {
+	thumb_picture_t *pic = ctx;
+	pic->key[0] = '\0';
+	if (!art->size) {
+		return false;
+	}
+	uint64_t id = bytes_id(art->data, art->size);
+	thumb_picture_key(pic->key, sizeof(pic->key), id, pic->box);
+	bool has_image = false;
+	return thumb_db_load(pic->key, outs, &has_image) && has_image;
+}
+
+static void thumb_picture_store(void *ctx, const cover_image_t *outs) {
+	thumb_picture_t *pic = ctx;
+	if (pic->key[0]) {
+		thumb_db_store(pic->key, outs, true);
+	}
+}
+
+// A track's thumbnail, decoded at most once per picture. Each candidate's bytes
+// are identified before decoding, so tracks embedding the same cover can reuse
+// the first thumbnail while retaining the normal candidate fallback order.
 static cover_build_t thumb_build_track(const char *path, int size, cover_image_t *out) {
 	image_request_t req = {.w = size, .h = size, .fit = COVER_FIT_CONTAIN, .backdrop = false};
-	bool cacheable = size <= THUMB_DISK_MAX_SIZE;
-	bool had_bytes = false;
-
-	crumb_set_artwork(path);
-	memset(out, 0, sizeof(*out));
-
-	for (int i = 0; i < ALBUMART_CANDIDATES; i++) {
-		albumart_t art;
-		if (!albumart_load_candidate(path, i, &art)) {
-			continue;
-		}
-		had_bytes = true;
-
-		// No id for bytes a pulled card may have zeroed: they name nothing.
-		uint64_t id = cacheable && art.size && !albumart_faulted(&art) ? bytes_id(art.data, art.size) : 0;
-		char picture_key[40];
-		if (id) {
-			thumb_picture_key(picture_key, sizeof(picture_key), id, size);
-			bool has_image = false;
-			if (thumb_db_load(picture_key, out, &has_image) && has_image) {
-				albumart_free(&art);
-				crumb_set_artwork(NULL);
-				return COVER_BUILD_OK;
-			}
-		}
-
-		bool ok = build_images_safely(art.data, art.size, &req, 1, out) && !albumart_faulted(&art);
-		albumart_free(&art);
-		if (ok) {
-			if (id) {
-				thumb_db_store(picture_key, out, true);
-			}
-			crumb_set_artwork(NULL);
-			return COVER_BUILD_OK;
-		}
-		cover_free(out);
+	if (size > THUMB_DISK_MAX_SIZE) {
+		return build_from_sources(path, false, &req, 1, out);
 	}
-
-	crumb_set_artwork(NULL);
-	return had_bytes ? COVER_BUILD_FAILED : COVER_BUILD_NONE;
+	thumb_picture_t pic = {.box = size};
+	cover_source_hook_t hook = {.lookup = thumb_picture_lookup, .store = thumb_picture_store, .ctx = &pic};
+	return build_from_sources_hooked(path, false, &req, 1, out, &hook);
 }
 
 static cover_build_t thumb_load_uncached(const char *path, bool is_dir, int size, cover_image_t *out) {
