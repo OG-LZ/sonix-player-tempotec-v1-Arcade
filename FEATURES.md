@@ -270,8 +270,10 @@ a self-signed certificate), and HLS.
   connection, and daylight-saving rules) or lets you set it by hand; the clock
   is written through to the RTC, with a 24-hour clock option.
 - **Language** - English, Italiano, Deutsch, Español, Français, Nederlands,
-  Polski, Português BR, Українська. The nine language files are read from the
+  Polski, Português BR, Українська, 日本語. The ten language files are read from the
   resource folder, so dropping another `.ini` in beside them adds a language.
+  In Japanese the interface draws its kana, kanji and CJK punctuation from the
+  bundled Rodin face rather than MiSans, whose kanji are the Chinese shapes.
   Titles and tags come out in whatever script the interface font covers too -
   Cyrillic, Greek, kana, kanji, Hangul, Thai and Arabic, Arabic right to left -
   so a Russian, Ukrainian or Japanese album title still reads.
