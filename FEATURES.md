@@ -66,6 +66,18 @@
 - **The queue is editable** - a long press on a row starts a selection and the trash button takes the chosen tracks out of the queue (the next one starts if the playing track went). Dragging a row by the grip at its right moves it; the queue on disk follows at once.
 - **The local queue survives a reboot**, with positions, and so does the volume. Ephemeral Subsonic queues do not.
 
+## Smart Mix
+
+- **Start from a track** - choose **Start Smart Mix** in a track's menu, its details card, a search result or a one-track list's play menu, and the player builds a mix of up to ten related tracks in the background, with a progress page and a cancel button. Episodes and streamed cache tracks are not offered as seeds.
+- **Saved as a playlist** - on the Playlist page, **Create Smart Mix** walks the library's own album and track lists to choose the starting track, or takes the single track being added to a playlist. The mix is written to the card as an ordinary playlist named after the seed (`Smart Mix - <track>`, with a ` (2)` tail when the name is taken), opens as its own track list, and leaves whatever is playing alone. The same action is reachable from selection mode's **Add to playlist**.
+- **Built entirely on the player** - after a scan or change check, the same library worker builds missing or outdated Smart Mix data from the scanned tags, as its own phase after the music scan. An existing library can build it when the card returns even with Detect changes disabled, without rescanning its files. No computer or network is required; the graph lives beside the index in `.local/genius.db`.
+- **Genre-based candidates** - one genre per cluster, ranked by shared album, artist and year. Each track keeps at most 32 candidates, with at most two per artist and three per album. Empty tags are treated as ordinary values rather than dropping the track.
+- **Progress and background work** - the scan page keeps its tracks-written count and shows Smart Mix indexing separately, with its own completed/total percentage and a time estimate. **Continue in background** leaves the job running and returns to the same page later; the display may turn off while the device stays awake. Cancel stops the active phase and prevents the later phases.
+- **Complete generations** - a bounded staging database is synced and then published by a same-directory rename, so a half-written graph never replaces the working one. Cancellation, a changed input, a reached limit or a write error leaves the previous graph in place. Removing the card stops and waits for the worker before unmount, and abandoned staging is discarded on the next build. The generation records the producer, the algorithm and the SHA-256 of the exact normalized input paths and tags, plus the static graph digest, so a graph built from the same inputs elsewhere is recognized without rebuilding.
+- **Bounded indexing** - up to 4,096 library rows (including ignored empty paths), 1 MiB of retained path/tag text, 4,096 bytes per field, 4 MiB of builder allocations and a 2 MiB snapshot. Ranking evaluates at most 4,096 scores and seven passes of that genre per track. Reaching a limit preserves the old graph and leaves the library usable; a Smart Mix failure never fails an otherwise successful scan.
+- **An ordered queue** - spacing and selection decide the sequence, so shuffle and repeat do not alter a playing mix, and the fixed order survives a reboot.
+- Missing data, too few similar tracks and a resource limit each raise their own message, and snapshot memory and graph traversal have explicit limits.
+
 ## Now playing
 
 - Artwork edge to edge across the top, and the same picture flipped, blurred and dimmed behind the controls.
