@@ -54,6 +54,7 @@
 #include "src/system/streaming/tidalcache.h"
 #include "src/system/streaming/streamkeys.h"
 #include "src/system/lastfm/lastfm.h"
+#include "src/system/listenbrainz/listenbrainz.h"
 #include "src/system/library/library.h"
 #include "src/system/core/logging.h"
 #include "src/system/playback/playlist.h"
@@ -1990,6 +1991,9 @@ int main(int argc, char **argv) {
 	qobuz_init();
 	tidal_init();
 	lastfm_init();
+	// ListenBrainz needs no application keys: its account is a user token
+	// pasted in its settings page, and the module starts with or without it.
+	listenbrainz_init();
 
 	lv_init();
 

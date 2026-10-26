@@ -123,6 +123,21 @@ $(BUILD)/test_notes: $(NOTES_SRC) $(ROOT)/src/system/notes/notesstore.h $(ROOT)/
 	@mkdir -p $(BUILD)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $(NOTES_SRC) $(LDFLAGS) $(LDLIBS)
 
+# The ListenBrainz module's rules without a network: the queue file on the
+# card, the JSON body a request carries and the answers the server sends. The
+# module is compiled into the test (its internals are what is checked); the
+# network, the card and the clock-less externals are stubbed there. The JSON
+# parser and the settings store are the real ones.
+LB_SRC = test_listenbrainz.c $(ROOT)/src/system/core/json.c $(ROOT)/src/system/core/config.c
+.PHONY: listenbrainz
+listenbrainz: $(BUILD)/test_listenbrainz
+	$(BUILD)/test_listenbrainz
+
+$(BUILD)/test_listenbrainz: $(LB_SRC) $(ROOT)/src/system/listenbrainz/listenbrainz.h \
+					$(ROOT)/src/system/core/json.h $(ROOT)/src/system/core/config.h
+	@mkdir -p $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $(LB_SRC) $(LDFLAGS) $(LDLIBS)
+
 # The rows of Album Art Max: the now-playing arrangement that trades the media
 # controls for the artwork. The sleeve is asked for at the size this gives
 # before anything has been laid out, so the arithmetic is its own module -- and

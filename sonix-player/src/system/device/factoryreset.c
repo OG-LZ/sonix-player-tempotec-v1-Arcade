@@ -247,6 +247,7 @@ static const char *const KEEP[] = {
 	"ebook_config.ini.tmp",
 	"tidal_session.ini",
 	"lastfm.session",
+	"listenbrainz.token",
 };
 
 static bool kept(const char *name) {
