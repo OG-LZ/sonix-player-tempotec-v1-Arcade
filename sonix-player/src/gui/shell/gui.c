@@ -102,6 +102,7 @@ typedef struct {
 	char text[256];
 	const lv_image_dsc_t *icon; // NULL for a plain notice
 	lv_color_t icon_color;
+	uint32_t ms; // how long it stays up
 } popup_event_t;
 
 static lv_obj_t *popup_veil; // the dimmed screen behind the card
@@ -109,6 +110,12 @@ static lv_obj_t *popup;		 // the card itself, inside the veil
 static lv_obj_t *popup_icon;
 static lv_obj_t *popup_label;
 static lv_timer_t *popup_timer;
+
+// Long enough for a whole sentence, not just a two-word notice.
+#define POPUP_MS 3000
+// A low battery is not a notice: it is the last thing the player says before it
+// goes, and the screen it wakes up for is worth more than three seconds.
+#define POPUP_MS_LOW_BATTERY 8000
 
 // ---------------------------------------------------------------------------
 // gui_post: the bridge from any thread onto the GUI thread.
@@ -276,11 +283,11 @@ static void popup_veil_cb(lv_event_t *e) {
 	popup_dismiss();
 }
 
-static void popup_show_icon(const char *text, const lv_image_dsc_t *icon, lv_color_t color);
+static void popup_show_icon(const char *text, const lv_image_dsc_t *icon, lv_color_t color, uint32_t ms);
 
-void popup_show(const char *text) { popup_show_icon(text, NULL, lv_color_black()); }
+void popup_show(const char *text) { popup_show_icon(text, NULL, lv_color_black(), POPUP_MS); }
 
-static void popup_show_icon(const char *text, const lv_image_dsc_t *icon, lv_color_t color) {
+static void popup_show_icon(const char *text, const lv_image_dsc_t *icon, lv_color_t color, uint32_t ms) {
 	if (!popup) {
 		fprintf(stderr, "popup_show() was called, but popup is not initialized. this is unexpected...");
 		return;
@@ -306,6 +313,10 @@ static void popup_show_icon(const char *text, const lv_image_dsc_t *icon, lv_col
 	lv_obj_center(popup);
 	lv_obj_move_foreground(popup_veil);
 	lv_obj_set_hidden(popup_veil, false);
+
+	// Every notice carries its own time: the timer is one, reused, and a long
+	// warning left its period behind for the next three-second notice.
+	lv_timer_set_period(popup_timer, ms ? ms : POPUP_MS);
 	lv_timer_reset(popup_timer);
 	lv_timer_resume(popup_timer);
 }
@@ -313,12 +324,12 @@ static void popup_show_icon(const char *text, const lv_image_dsc_t *icon, lv_col
 static void popup_async_cb(void *user_data) {
 	popup_event_t *ev = user_data;
 
-	popup_show_icon(ev->text, ev->icon, ev->icon_color);
+	popup_show_icon(ev->text, ev->icon, ev->icon_color, ev->ms);
 
 	free(ev);
 }
 
-static void popup_notify(const char *text, const lv_image_dsc_t *icon, lv_color_t color) {
+static void popup_notify(const char *text, const lv_image_dsc_t *icon, lv_color_t color, uint32_t ms) {
 	popup_event_t *ev = malloc(sizeof(*ev));
 	if (!ev) {
 		return;
@@ -328,13 +339,14 @@ static void popup_notify(const char *text, const lv_image_dsc_t *icon, lv_color_
 	ev->text[sizeof(ev->text) - 1] = '\0';
 	ev->icon = icon;
 	ev->icon_color = color;
+	ev->ms = ms ? ms : POPUP_MS;
 	// gui_post rather than lv_async_call: popups arrive from any thread
 	// (bluetooth, usb, Qobuz downloads), and lv_async_call from off the GUI
 	// thread corrupts the timer list. See gui_post.
 	gui_post(popup_async_cb, ev);
 }
 
-void gui_notify_popup(const char *text) { popup_notify(text, NULL, lv_color_black()); }
+void gui_notify_popup(const char *text) { popup_notify(text, NULL, lv_color_black(), POPUP_MS); }
 
 bool gui_card_available(void) {
 	if (usb_storage_active()) {
@@ -348,7 +360,15 @@ bool gui_card_available(void) {
 void gui_notify_no_card(void) { gui_notify_popup(usb_storage_active() ? "usb_storage_shared" : "sd_card_missing"); }
 
 void gui_notify_popup_icon(const char *text, const lv_image_dsc_t *icon, lv_color_t color) {
-	popup_notify(text, icon, color);
+	popup_notify(text, icon, color, POPUP_MS);
+}
+
+void gui_notify_battery_low(void) {
+	// The red card the other failures wear, held long enough to be read while
+	// the player is being woken up for it. The caller has already brought the
+	// panel back (see battery_guard_tick() in power.c): a warning over a dark
+	// screen is a warning nobody gets.
+	popup_notify("battery_low_warning", &icon_circle_alert, lv_color_make(0xe0, 0x1b, 0x24), POPUP_MS_LOW_BATTERY);
 }
 
 // ---------------------------------------------------------------------------
@@ -851,9 +871,9 @@ void gui_init(gui_config_t *cfg) {
 	lv_obj_set_style_text_font(popup_label, &font_ui_22, 0);
 	lv_obj_set_style_text_align(popup_label, LV_TEXT_ALIGN_CENTER, 0);
 
-	// Three seconds: long enough to read a whole sentence, not just a two-word
-	// notice.
-	popup_timer = lv_timer_create(popup_hide_cb, 3000, NULL);
+	// Three seconds by default: long enough to read a whole sentence, not just
+	// a two-word notice. Each notice sets its own period when it is shown.
+	popup_timer = lv_timer_create(popup_hide_cb, POPUP_MS, NULL);
 	lv_timer_pause(popup_timer); // nothing to hide until a notice is shown
 
 	// The gui_post doorbell and the timer that drains it, created here, once, on

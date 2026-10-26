@@ -51,6 +51,9 @@ jobs:
       - name: Check the More, Calculator and Notes pages (headless LVGL)
         run: make -C sonix-player/tests ui -j"$(nproc)"
 
+      - name: Check the battery guard (warning at five, shutdown at one)
+        run: make -C sonix-player/tests batteryguard
+
       - name: Check the Calculator's arithmetic and the notes folder
         run: make -C sonix-player/tests calculator notes -j"$(nproc)"
 

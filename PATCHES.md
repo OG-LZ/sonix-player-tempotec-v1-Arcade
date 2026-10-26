@@ -1268,3 +1268,137 @@ written for. Behaviour at five of six and at seven of nine is unchanged; at 2 x
 of the layout code (`gridpage_set_layout`, `gridpage_build`,
 `gridpage_replace_entries`), which now share the one predicate instead of
 repeating it.
+
+## The charger, with the player off
+
+The stock player comes up on a battery screen when the device was switched off
+and a cable is plugged in: the charger powers the board, and the thing the user
+plugged in for is the charge, not the library. Replacing the stock binary means
+that boot lands in this player instead, so the same boot has to be recognised
+and answered the same way.
+
+### What the hardware does, and does not, say
+
+Nothing in the kernel reports whether the board was powered by the key or by
+VBUS. The AXP2101 knows, in the power-on-source field of its status register,
+but that register is not exposed on this firmware, and the kernel offers no boot
+reason either. What *can* be known is what the device was doing before it
+started, and that is the question actually being asked: a boot with a cable in
+is a charger boot only if the player was off when the cable went in.
+
+So the player writes a marker beside the settings, on `/usr/data` -- the one
+partition that is writable and always there:
+
+```
+/usr/data/.sonix_player_running
+```
+
+It goes down as the player's own startup begins and `power_shutdown()` takes it
+off, first, before the databases are closed and the card is unmounted. A boot
+with a cable in and **no** marker is therefore a device that was off and has
+just been put on a charger:
+
+| how the device started | marker | what comes up |
+|---|---|---|
+| Power off (menu, auto-off, flat battery), then the cable goes in | absent | the charging screen |
+| Power off, then the power key | absent, no cable | the player |
+| Reboot from the menu, a crash, a firmware update | present | the player |
+| Power cut, cell pulled -- no clean shutdown | present | the player |
+| Factory reset (recovery wipes `/usr/data` on the next boot) | absent | the charging screen, if the cable is in |
+
+The marker says "this device was running the player", not "the player was
+switched off purposefully", because that is the answer that keeps a battery
+screen off a reboot: a crash leaves the marker, and the device comes back to the
+player the user was using. The cost is the fourth row -- a player whose power
+was cut with the cable in boots the player rather than the battery screen -- and
+the fifth, which is the recovery script's wipe of `/usr/data` and the one thing
+here that no code in the player can observe. Both are rare, and both are
+answered by holding power for a moment, which is what the screen would have
+asked for anyway.
+
+### The screen
+
+`chargescreen.c` runs before the services start, on purpose: it reads the gauge
+through `battery_read_now()`, the cable through `usb_vbus_present()`, and the
+power key off its own evdev node, so no input thread is running to answer a key
+it is using. A hold would otherwise open the power menu of a player that has not
+been built yet.
+
+It draws a battery whose fill is the level, the percentage, and one of three
+states -- charging, charger connected with nothing going in (full, or held at
+the charge limit), or no cable -- then darkens itself after ten seconds. **Press
+power** to bring it back; **hold power** for the same 1.2 s the power menu's
+long press waits for, and the player starts. With the cable taken out while the
+screen is dark it switches the player off instead: a device that was off, was
+woken by a cable and no longer has one has nowhere to be.
+
+The panel is blanked and woken the way `power.c` does it, which on this board is
+not optional: the SLCD leaves its memory white on reset and loses a frame pushed
+before it is listening, so the backlight is held at zero across the unblank and
+the settle, and brought up over a frame that is already in the framebuffer. The
+code is short and repeats `power_screen_on()`'s order deliberately; the long note
+on that function is the reason for each step.
+
+Every line on the screen is given the panel's width and told to wrap. The three
+states are short in English and not in every language -- the Ukrainian for
+"charger connected" is wider than the glass at 22 px -- and a label that sized
+itself to its text would simply leave the panel. That is not theory: the
+headless test below found it on the first run, in the state line.
+
+`[power] charge_screen = 0` in `device_config.ini` turns the screen off, and
+`[power] charge_screen_seconds` moves its timeout (ten, floor five). On the
+simulator `SONIX_CHARGE_SCREEN=1 ./sonix_player_host` brings it up, with P as
+the power key.
+
+What this cannot add is the boot itself: a board whose PMIC does not power it up
+when VBUS arrives stays off, and no amount of software will see the cable.
+
+`make -C sonix-player/tests ui` builds and runs `test_chargescreen`, which draws
+the screen on the real renderer at both panel sizes: every object inside the
+glass, the fill within a pixel of the reading it was given and never past the
+box at 100%, `--` and an empty bar for a gauge that answered nothing (never
+`0%`), and the three state lines in each of the ten languages -- stepped through
+one reading at a time, because the screen only repaints a line that has
+changed.
+
+## The last five percent
+
+A player that runs until the cell is empty does not switch itself off. The
+regulator drops out from under it with the card's databases open and the position
+unwritten, which is how a card acquires a database it has to repair on the next
+boot -- if it does.
+
+`batteryguard.c` is the rule, and it is its own module with no LVGL, no sysfs and
+no clock, so it can be driven by a test (`make -C sonix-player/tests
+batteryguard`) rather than only on a device with a battery on its way flat:
+
+* **5%** warns, once per discharge. The warning is the red notice card, held for
+  eight seconds instead of the usual three, and the panel is brought back up
+  first if it was dark -- in standby, which is exactly when a warning is needed,
+  there is nothing on screen to warn with. The wake is not a loan: ten seconds
+  after the card goes up the panel goes dark again, because a warning that
+  leaves the panel lit for the rest of the discharge costs more than the percent
+  it is about. A press or a touch in the meantime hands the screen back to the
+  user, and it stays on as long as the ordinary screen-off timeout says.
+* **1%** goes down through `power_shutdown()`: the same way as the menu's Power
+  off, which is the point of doing it at one instead of at none.
+* Neither happens on the charger. The question is the cable, not "a charge is
+  going in": a battery held at the 80% charge limit reports exactly that, and the
+  cable is still carrying the player.
+* An unreadable gauge (`"!!"`, or any non-numeric answer) is not a flat battery,
+  and does nothing at all. The thresholds are on the reading the status bar's
+  own poll already refreshes, so the guard costs no sysfs traffic of its own.
+
+### Standby, and the one state it cannot see
+
+The tick that carries the guard runs with the screen on, off, or while something
+is playing, which is what "also during standby" comes down to on the device. The
+exception is suspend-to-RAM: nothing runs there at all, so a player that went to
+sleep at 12% could reach 1% with nobody watching.
+
+Below 10% and off the cable, `suspend_if_idle()` therefore refuses to sleep, with
+the reason in the log. The screen stays dark as it was -- the brightness of a
+dark screen is not the cost the sleep saves -- and the player waits, awake, for
+either the cable or the guard's shutdown at 1%. Above 10% the ordinary standby
+applies: a full battery is allowed its sleep, and a device left for weeks on a
+shelf is still going to die the way any device left for weeks on a shelf does.

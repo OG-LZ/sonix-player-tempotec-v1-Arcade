@@ -36,6 +36,19 @@ $(BUILD)/test_subsonic: test_subsonic.c support.c $(CORE) $(shell find $(ROOT)/s
 sanitize:
 	$(MAKE) BUILD=.build/sanitize CFLAGS='-O1 -g -std=gnu11 -Wall -Wextra -Werror -D_FILE_OFFSET_BITS=64 -ffunction-sections -fdata-sections -fno-omit-frame-pointer -fsanitize=address,undefined' LDFLAGS='-Wl,--gc-sections -fsanitize=address,undefined' test
 
+# The battery guard: when the player warns at five percent, when it switches
+# itself off at one, and which readings leave standby alone. The rule is its own
+# small module with no LVGL, no sysfs and no clock, which is exactly what makes
+# it testable here: power.c reads the gauge and does the two things.
+GUARD_SRC = test_batteryguard.c $(ROOT)/src/system/device/batteryguard.c
+.PHONY: batteryguard
+batteryguard: $(BUILD)/test_batteryguard
+	$(BUILD)/test_batteryguard
+
+$(BUILD)/test_batteryguard: $(GUARD_SRC) $(ROOT)/src/system/device/batteryguard.h
+	@mkdir -p $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $(GUARD_SRC) $(LDFLAGS) $(LDLIBS)
+
 # The Screensaver folder's rules: which files are pictures, judged from their
 # JPEG headers, and the random pick between them. Plain C, no LVGL.
 PICS_SRC = test_screensaverpics.c $(ROOT)/src/system/device/screensaverpics.c \
@@ -268,19 +281,33 @@ TOOLS_SRC = $(ROOT)/tests/ui/test_tools_pages.c \
 TOOLS_OBJ = $(patsubst $(ROOT)/%.c,$(BUILD)/ui/%.o,$(TOOLS_SRC)) \
             $(patsubst $(ROOT)/%.c,$(BUILD)/ui/%.o,$(UI_LVGL_SRC))
 
+# The battery screen a charger boot opens on: its layout at both panel sizes,
+# the fill being the reading it was given, and the three state lines in ten
+# languages. The power key and the boot it belongs to need a device; this needs
+# only the glass.
+CHARGE_SRC = $(ROOT)/tests/ui/test_chargescreen.c $(ROOT)/src/gui/shell/chargescreen.c \
+             $(ROOT)/src/gui/board_profile.c \
+             $(ROOT)/src/system/core/config.c $(ROOT)/src/system/core/lang.c
+CHARGE_OBJ = $(patsubst $(ROOT)/%.c,$(BUILD)/ui/%.o,$(CHARGE_SRC)) \
+             $(patsubst $(ROOT)/%.c,$(BUILD)/ui/%.o,$(UI_LVGL_SRC))
+
 .PHONY: ui
-ui: $(BUILD)/test_main_menu $(BUILD)/test_screensaver $(BUILD)/test_tools_pages $(BUILD)/test_wifi_pages
+ui: $(BUILD)/test_main_menu $(BUILD)/test_screensaver $(BUILD)/test_tools_pages $(BUILD)/test_wifi_pages $(BUILD)/test_chargescreen
 	$(BUILD)/test_main_menu ../../sonix-packer/assets/V1/usr/resource/sonix/language
 	$(BUILD)/test_main_menu ../../sonix-packer/assets/V1/usr/resource/sonix/language saved
 	$(BUILD)/test_screensaver ../../sonix-packer/assets/V1/usr/resource/sonix/language
 	$(BUILD)/test_screensaver ../../sonix-packer/assets/V1/usr/resource/sonix/language saved
 	$(BUILD)/test_tools_pages ../../sonix-packer/assets/V1/usr/resource/sonix/language
 	$(BUILD)/test_wifi_pages ../../sonix-packer/assets/V1/usr/resource/sonix/language
+	$(BUILD)/test_chargescreen ../../sonix-packer/assets/V1/usr/resource/sonix/language
 
 $(BUILD)/test_main_menu: $(UI_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 $(BUILD)/test_screensaver: $(SAVER_OBJ)
+	$(CC) -o $@ $^ $(LDFLAGS) $(LDLIBS)
+
+$(BUILD)/test_chargescreen: $(CHARGE_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 $(BUILD)/test_tools_pages: $(TOOLS_OBJ)
