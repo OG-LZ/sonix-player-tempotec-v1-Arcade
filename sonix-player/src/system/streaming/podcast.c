@@ -58,6 +58,7 @@ static const char *interface_language_code(void) {
 		{"Deutsch", "de"},
 		{"Fran\xC3\xA7\x61is", "fr"},
 		{"Espa\xC3\xB1ol", "es"},
+		{"Japanese", "ja"},
 		{"Nederlands", "nl"},
 		{"Polski", "pl"},
 		{"Portugu\xC3\xAAs BR", "pt,pt-br"},
