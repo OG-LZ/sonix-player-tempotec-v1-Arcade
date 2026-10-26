@@ -185,10 +185,10 @@ a self-signed certificate), and HLS.
 
 ## Tools
 
-> **Calculator** and **Notes** are in the **More** menu, under the file
-> manager. Both are drawn for the panel they are on: on the 240x320 V1 the
-> twenty keys stay a finger's width, and the whole page -- display, keypad and
-> labels -- fits without scrolling.
+> **Calculator**, **Notes** and **Metronome** are in the **More** menu, under
+> the file manager. All three are drawn for the panel they are on: on the
+> 240x320 V1 the twenty keys stay a finger's width, and each page -- display,
+> keypad and labels -- fits without scrolling.
 
 - **Calculator** - a display and the twenty keys of an ordinary pocket
   calculator: the four operations, sign, percent, backspace and clear. The sum
@@ -221,6 +221,20 @@ a self-signed certificate), and HLS.
   > written as UTF-8; a file saved as UTF-16 or Windows-1252 is read and shown
   > correctly too, and a note longer than the editor holds is offered to the
   > file manager's viewer instead of being cut short here.
+- **Metronome** - a tempo from **30 to 250 BPM**, a bar of **one to seven
+  beats**, and a click on every beat with the first of the bar accented and
+  lit. The tempo is dragged on a slider or taken from the finger with **Tap**,
+  which averages the last few taps rather than the last gap alone, so one
+  hurried tap does not move the tempo a dozen beats. A tap slower than 30 or
+  faster than 250 leaves the tempo at that end of the scale instead of outside
+  it, and the button works while the click is running. The click is synthesised
+  in the player -- two short bursts, a bright one on the downbeat -- so there is
+  nothing extra to ship, and it is played through the same output as the music:
+  starting it stops local playback and the radio, as the emulator does. The
+  dots follow the beat the audio thread has actually written, so what is on the
+  glass cannot drift from what is in the ear. The tempo and the bar are
+  remembered across visits and across a reboot; leaving the page stops the
+  click, because the page is the only place it can be stopped from.
 
 ## Games
 

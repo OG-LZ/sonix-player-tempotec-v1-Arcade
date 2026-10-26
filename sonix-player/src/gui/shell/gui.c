@@ -45,6 +45,7 @@
 #include "src/gui/library/textview.h"
 #include "src/gui/calculator/calculator.h"
 #include "src/gui/notes/noteeditor.h"
+#include "src/gui/metronome/metronome.h"
 #include "src/gui/notes/notes.h"
 #include "src/gui/shell/morepage.h"
 #include "src/gui/shell/popover.h"
@@ -664,6 +665,7 @@ void gui_init(gui_config_t *cfg) {
 	flappybird_screen = lv_obj_create(NULL);
 	calculator_screen = lv_obj_create(NULL);
 	notes_screen = lv_obj_create(NULL);
+	metronome_screen = lv_obj_create(NULL);
 	noteeditor_screen = lv_obj_create(NULL);
 
 	// Persistent topbar that stays above every screen.
@@ -722,6 +724,7 @@ void gui_init(gui_config_t *cfg) {
 	calculator_init(cfg);
 	noteeditor_init(cfg); // before notes: a row of the shelf opens it
 	notes_init(cfg);
+	metronome_init(cfg); // before morepage: its tile opens it
 	morepage_init(cfg);
 	textview_init(cfg); // before filespage: a text file tapped there opens here
 	pictureview_init(cfg); // likewise, for JPEG and PNG pictures

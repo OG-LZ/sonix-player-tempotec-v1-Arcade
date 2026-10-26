@@ -1214,3 +1214,57 @@ the overlapping children first, so the buttons keep their own. The press still
 bubbles to the sheet, so a drag that starts on the title moves the panel like a
 drag anywhere else, and the guard the circles use (`circle_guard_cb`) keeps the
 release that ends such a drag from also opening the player.
+
+## A metronome, and the eighth tile
+
+The More menu gained a metronome: 30 to 250 BPM, a bar of one to seven beats,
+and a tap tempo. It is a page of two cards, the way the settings pages are
+built -- the tempo with its readout, its slider and its two buttons, then the
+bar as a row of seven -- laid out from `bp_pick()` so it stays inside a 240 x
+320 panel, and painted by hand where its colours follow the state: the chosen
+beat, the button that is running, the dot that is lit.
+
+The click is not a file. There is no tone generator anywhere else in the
+player, and shipping a sample would mean shipping a decoder path for one
+sound, so `metronomeclick.c` synthesises two short bursts -- a bright one on
+the downbeat, a lower one between -- and writes them into the external PCM the
+way the emulator's sound does: 44.1 kHz, stereo, 16-bit, in ten-millisecond
+blocks, on a thread of its own, with `audio_stop()` and `radio_stop()` before
+the output is taken, because one PCM has one writer.
+
+Two decisions are what keep it a metronome rather than a ticking noise. The
+tempo is kept in frames, not in sleeps: each pass writes a block and the write
+blocks until the DAC has room, so the stream itself is the clock, and the beat's
+position is carried as a fraction so it is not truncated once per block. And
+the onset of a click is placed on its own sample inside the block rather than
+on a block boundary, so a tempo change moves the click by at most one block
+(ten milliseconds) and never by a whole beat.
+
+The page does not time anything. It asks the audio thread how many beats it has
+written and which of the bar the last one was, and lights the dot for that beat
+-- which is why the flash cannot drift from the ear, and why a bar of three
+follows a bar of seven without the page guessing where it is.
+
+The tempo and the bar go into the config file, written when the drag ends, when
+the bar changes, when the click starts and when the page is left, but only if
+the value is not what is already there: a tap tempo that saved on every tap
+would rewrite the card four times a second at the top of the scale. Leaving the
+page stops the click, because the page is the only place it can be stopped
+from.
+
+### The eighth tile, and a rule that did not know about three columns
+
+The More page drew eight entries in a 3 x 3 grid badly: the tile rule that
+widens the last entry to fill its row -- written for five entries in a 2 x 3
+page, where the last one would otherwise leave a card-sized hole -- also fired
+at eight entries, where the last tile is not alone on its row at all. The wide
+tile took a fourth row of its own, past the foot of a page that cannot be
+scrolled, and the metronome was the entry nobody could reach.
+
+The rule now asks whether the last entry really would be alone: it widens only
+when the count leaves one place on the last row, which is the case it was
+written for. Behaviour at five of six and at seven of nine is unchanged; at 2 x
+3 with four entries the third row stays deliberately empty, in all three copies
+of the layout code (`gridpage_set_layout`, `gridpage_build`,
+`gridpage_replace_entries`), which now share the one predicate instead of
+repeating it.
