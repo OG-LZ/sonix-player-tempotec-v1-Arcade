@@ -1188,3 +1188,29 @@ is fixed. The poll that repaints the panel keeps the knob in step with a level
 moved from outside while the sheet is up, and never moves it under a finger. The
 number in the status bar above it is refreshed on every step, since it is the
 same level and would otherwise lag the sound by up to a second.
+
+## The control centre's card as a way into the player
+
+The now-playing card under the control centre's buttons showed what was playing
+and carried its transport, but the one thing a card shaped like that invites --
+a tap on the track to open it -- did nothing. The title and the artist are now
+that way in, the way they are on a lock-screen widget: a tap on either brings
+Now Playing up, and the panel goes away as it does when a long press opens a
+page from a circle.
+
+Two details make it work with the sheet it sits on. The order is the one
+`open_page()` already uses for the pages -- the control centre goes down first
+and the player comes up behind it -- because the player is a sheet on the top
+layer: opened under a control centre still on screen, it would be drawn beneath
+the panel's veil rather than over the page. When the player is already there,
+because the panel was pulled down over it, closing the panel is the whole job
+and the sheet is revealed rather than reopened.
+
+And the taps belong to the labels, not to the card. LVGL labels are not
+clickable, and one line of text is a thin target on a 240 x 320 panel, so each
+label is made clickable with its hit area grown past the line on every side --
+the transport row is built after them, and LVGL offers a press to the last of
+the overlapping children first, so the buttons keep their own. The press still
+bubbles to the sheet, so a drag that starts on the title moves the panel like a
+drag anywhere else, and the guard the circles use (`circle_guard_cb`) keeps the
+release that ends such a drag from also opening the player.
