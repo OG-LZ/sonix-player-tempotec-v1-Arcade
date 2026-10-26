@@ -87,6 +87,7 @@
 - **Album Art Max layout** - the sleeve instead of the controls: the picture at the width of the panel with the status bar kept above it, the format, the shuffle mode, the menu and the heart in one row under that bar, and a minimal scrub bar along the foot of the artwork, with the artist, the track name and the place in the queue on a black strip below. There is no transport on the page - the physical keys are the transport, which the status bar's play/pause mark confirms - and double-tapping the left or right side of the picture is the previous or next track. Nothing is written over the photograph and the strip carries everything that names the track: the artist first, in the record's colour, then the title in the theme's ink, each given the width of its own words so that neither scrolls unless it has to. The scrub bar, the heart, the format line and the queue count are all drawn in the colour of the album art, so the page belongs to the record rather than to the theme. The bar is a thin band of colour that deepens towards the playhead, which is a tab rather than a knob. The two clocks appear in the middle of the picture, large, only while a track is being scrubbed (a finger on the bar or a held skip key), with the artwork dimmed behind them. *Scrub bar on the left* moves the bar up the left edge instead, where the thumb travels vertically. The V1's panel only, where every number in it is measured; the other boards keep the standard arrangement.
 - **Player layout** - Standard, Waveform, Alternative, Immersive, Poster or Album Art Max, in Settings → Music → Display options; the choice is remembered across restarts.
 - **Tint controls from album art** - optional, off by default, in the same Display options: the play/pause button and the played part of the progress bar take the main colour of the playing track's artwork, in every layout, while previous and next keep their colour. The colour is the one already worked out from the decoded artwork, so nothing extra is decoded and playback is untouched; a track with no artwork keeps the theme's colours.
+- **The control centre** - pulled down from the status bar, or up from the bottom edge with **Appearance → Stock gestures** on: the round quick controls, the brightness bar under them -- or the volume, with **Screen → Volume in control centre** -- and the playing track over its transport. **Tap the title or the artist to open Now Playing** for what is playing, and the control centre closes on the way: the player comes up over the page, or is simply revealed when it was already open behind the panel. The two lines do nothing while the card says there is nothing playing.
 - **Cover Flow** - an album carousel: pull up from the bottom of the main menu and it follows the finger up over the page; drag it back down -- from anywhere on the sheet, or from the grip under the status bar -- and it goes away. With **Appearance → Stock gestures** on it comes down from the top edge of any page instead, and goes back up, as on the original firmware. Off by default in Settings → Music → Display options.
 - **Queue**, **Details** and, while an audiobook is loaded, **Chapters**.
 
@@ -184,10 +185,10 @@ a self-signed certificate), and HLS.
 
 ## Tools
 
-> **Calculator** and **Notes** are in the **More** menu, under the file
-> manager. Both are drawn for the panel they are on: on the 240x320 V1 the
-> twenty keys stay a finger's width, and the whole page -- display, keypad and
-> labels -- fits without scrolling.
+> **Calculator**, **Notes** and **Metronome** are in the **More** menu, under
+> the file manager. All three are drawn for the panel they are on: on the
+> 240x320 V1 the twenty keys stay a finger's width, and each page -- display,
+> keypad and labels -- fits without scrolling.
 
 - **Calculator** - a display and the twenty keys of an ordinary pocket
   calculator: the four operations, sign, percent, backspace and clear. The sum
@@ -220,6 +221,20 @@ a self-signed certificate), and HLS.
   > written as UTF-8; a file saved as UTF-16 or Windows-1252 is read and shown
   > correctly too, and a note longer than the editor holds is offered to the
   > file manager's viewer instead of being cut short here.
+- **Metronome** - a tempo from **30 to 250 BPM**, a bar of **one to seven
+  beats**, and a click on every beat with the first of the bar accented and
+  lit. The tempo is dragged on a slider or taken from the finger with **Tap**,
+  which averages the last few taps rather than the last gap alone, so one
+  hurried tap does not move the tempo a dozen beats. A tap slower than 30 or
+  faster than 250 leaves the tempo at that end of the scale instead of outside
+  it, and the button works while the click is running. The click is synthesised
+  in the player -- two short bursts, a bright one on the downbeat -- so there is
+  nothing extra to ship, and it is played through the same output as the music:
+  starting it stops local playback and the radio, as the emulator does. The
+  dots follow the beat the audio thread has actually written, so what is on the
+  glass cannot drift from what is in the ear. The tempo and the bar are
+  remembered across visits and across a reboot; leaving the page stops the
+  click, because the page is the only place it can be stopped from.
 
 ## Games
 

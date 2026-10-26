@@ -1224,6 +1224,33 @@ static void prev_cb(lv_event_t *e) {
 	refresh_now_playing_card();
 }
 
+// The title and the artist are the way into the player, the way they are on a
+// lock screen: tap either line and Now Playing comes up for what is playing.
+// The transport below is already the player's own, so only those two lines are
+// a way in.
+//
+// The sheet goes down first and the player comes up behind it, the order
+// open_page() uses for the pages and for the same reason: the player is a sheet
+// on the top layer, and opening it under a control centre still on screen would
+// leave the two stacked the wrong way round, with this one's veil over it. When
+// the player is already there -- the control centre was pulled over it -- closing
+// this one is the whole job, and it is revealed rather than reopened.
+//
+// Nothing is done while the card says there is nothing playing: there would be
+// no Now Playing to show, only an empty player over the page.
+static void np_open_player_cb(lv_event_t *e) {
+	(void)e;
+	device_state_t state;
+	device_state_get(&state);
+	if (!state.live && !state.current_file[0]) {
+		return;
+	}
+	quickpanel_close();
+	if (!player_sheet_is_open()) {
+		player_sheet_open(true);
+	}
+}
+
 static void repeat_cb(lv_event_t *e) {
 	(void)e;
 	playlist_cycle_mode();
@@ -1780,6 +1807,25 @@ static void circle_guard_cb(lv_event_t *e) {
 	if (press_dragged) {
 		lv_event_stop_processing(e);
 	}
+}
+
+// One of the two lines of the now-playing card -- the title, the artist -- made
+// into a way into the player (see np_open_player_cb).
+//
+// A label is not clickable by itself, and the line it draws is only as tall as
+// its font, which is a thin target on a 240 x 320 panel. The click area is grown
+// past it on every side, far enough to cover the gap between the two lines and
+// the air above and below them while staying clear of the transport row: that
+// row is built after these labels, and LVGL offers a press to the last of the
+// overlapping children first. The same guard the circles use keeps a drag of the
+// sheet that happens to end here from also opening the player, and the press
+// bubbles on so a drag that starts on the title still moves the sheet.
+static void make_np_open_line(lv_obj_t *label) {
+	lv_obj_set_clickable(label, true);
+	lv_obj_set_ext_click_area(label, qp_compact ? 8 : 12);
+	lv_obj_set_event_bubble(label, true);
+	lv_obj_add_event_cb(label, circle_guard_cb, LV_EVENT_CLICKED, NULL);
+	lv_obj_add_event_cb(label, np_open_player_cb, LV_EVENT_CLICKED, NULL);
 }
 
 // One round quick control: a circle in the pressed-surface colour with the
@@ -2608,6 +2654,10 @@ void quickpanel_init(gui_config_t *cfg) {
 	// font high: a scrolling label shorter than its text scrolls it upwards
 	// instead of sideways, which is what a fixed height did to the artist as
 	// soon as the text size was Large.
+	//
+	// Both lines are also a way into the player: a tap on either opens Now
+	// Playing for what is playing, and the card is the one place the two of them
+	// sit together with nothing else to do.
 	np_title = lv_label_create(np_card);
 	lv_obj_set_width(np_title, lv_pct(100));
 	lv_obj_set_height(np_title, lv_font_get_line_height(bp_title_font()));
@@ -2615,6 +2665,7 @@ void quickpanel_init(gui_config_t *cfg) {
 	lv_obj_set_style_text_font(np_title, bp_title_font(), 0);
 	lv_obj_set_style_text_align(np_title, LV_TEXT_ALIGN_CENTER, 0);
 	scrolltext_apply(np_title);
+	make_np_open_line(np_title);
 
 	np_artist = lv_label_create(np_card);
 	lv_obj_set_width(np_artist, lv_pct(100));
@@ -2623,6 +2674,7 @@ void quickpanel_init(gui_config_t *cfg) {
 	lv_obj_set_style_text_font(np_artist, bp_artist_font(), 0);
 	lv_obj_set_style_text_align(np_artist, LV_TEXT_ALIGN_CENTER, 0);
 	scrolltext_apply(np_artist);
+	make_np_open_line(np_artist);
 
 	lv_obj_t *transport = lv_obj_create(np_card);
 	lv_obj_set_size(transport, lv_pct(100), qp_compact ? 52 : 96);
