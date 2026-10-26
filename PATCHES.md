@@ -1160,3 +1160,31 @@ sheet the arrangement puts at the top — the control centre in the classic one,
 Cover Flow in the stock one — because hiding the bar must not take the gesture
 away with it. The reader and the two games hide it behind a full-screen picture
 instead, and they keep their own presses.
+
+## The control centre's slider, as brightness or as volume
+
+The bar under the control centre's round buttons has always set the panel
+brightness, which is the stock firmware's brightness bar in the place it has
+always had. Some people reach for the volume far more often than for the
+backlight, and the volume keys are on the side of the device rather than on the
+screen they are already touching. **Settings → Screen → Volume in control
+centre** gives them the same bar for the output volume, off by default.
+
+It is one row and one slider, not two that take turns: the setting changes what
+the slider does rather than which of two is on screen, so nothing is rebuilt and
+nothing moves. `quickpanel_volume_slider()` and `quickpanel_set_volume_slider()`
+are the whole of the switch, over `[quickpanel] volume_slider`; the sheet reads
+it again at every pull, so a change is in effect at the next one, and the
+settings row also applies it at once in case the sheet is already built.
+
+As the volume bar the row keeps the three glyphs and the warning colour of the
+volume pill over the player — silent below 1%, quiet below 55%, loud above it,
+the fill turning red past the same 55% — so the bar says the same thing in the
+control centre as it does over the player. The slider reads and writes
+`get_volume_percent()`/`set_volume_percent()`, the pair the keys, the pill and
+Bluetooth remotes already share: it therefore follows the output profile in use,
+respects the per-socket volume limit and holds still on line out, where the level
+is fixed. The poll that repaints the panel keeps the knob in step with a level
+moved from outside while the sheet is up, and never moves it under a finger. The
+number in the status bar above it is refreshed on every step, since it is the
+same level and would otherwise lag the sound by up to a second.
