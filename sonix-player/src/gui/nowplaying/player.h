@@ -162,9 +162,10 @@ void player_restore_index(library_index_t *ix, int start_index, const char *cons
 						  int extra_count, const char *filepath, double position);
 
 // The same for a queue saved as a plain list of paths. `custom` restores the
-// queue's own custom flag, which the list of paths on its own cannot carry.
-void player_restore_list(const char *const *list, int count, int start_index, bool custom, const char *filepath,
-						 double position);
+// queue's own custom flag, which the list of paths on its own cannot carry, and
+// `ordered` restores its fixed-sequence (Smart Mix) flag.
+void player_restore_list(const char *const *list, int count, int start_index, bool custom, bool ordered,
+						 const char *filepath, double position);
 
 // The loaded track's artwork, already decoded and scaled by the player: the
 // cover itself, and the blurred copy the controls are drawn on. NULL when the

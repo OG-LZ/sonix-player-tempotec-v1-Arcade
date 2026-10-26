@@ -1338,6 +1338,13 @@ static void suspend_if_idle(uint32_t now, bool playing) {
 		mem_skip("music is playing");
 		return;
 	}
+	// The panel may be dark while the scan worker owns the card, including
+	// Smart Mix ranking and publication. Keep its I/O awake as well as
+	// preventing the automatic shutdown; neither needs the backlight on.
+	if (library_scan_running()) {
+		mem_skip("the library job is active");
+		return;
+	}
 	// Pause counts as a stopped state: the PCM is already released after five
 	// seconds ("DAC powered down" in the log) and resuming always reopens the
 	// device from scratch, route included, which is the path every unpause
