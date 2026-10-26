@@ -281,6 +281,30 @@ a self-signed certificate), and HLS.
 
 - **Power** - standby, LED behaviour, automatic power-off from thirty seconds to
   six hours, and a charge limit from 80 to 100 %.
+- **Battery** - the last few percent are managed rather than run out. At **5 %**
+  the player warns: a red card, held for eight seconds, and the panel is brought
+  back up first if it was dark, because a warning nobody sees is not one. That
+  wake is brief: ten seconds later the panel goes dark again, unless the screen
+  has been touched in the meantime. At **1 %** it switches itself off the
+  ordinary way - position written, databases closed, card unmounted - instead of
+  letting the cell drop out from under it. Both work with the screen off and in
+  standby, and neither happens while the charger is in, whether the cell is
+  taking a charge or is held at the limit. Below 10 % the player also refuses to
+  suspend to RAM: a sleeping player cannot watch its own gauge, and the clean
+  shutdown at one percent is worth more than the sleep. The warning is given
+  once per discharge; it comes back after the battery has been charged past
+  7 %.
+- **Charging with the player off** - a player that was switched off and is then
+  put on a charger comes up on a battery screen rather than the library: the
+  level as a filling battery, the percentage, and whether the charger is still
+  charging, finished, or gone. It darkens itself after ten seconds
+  (`[power] charge_screen_seconds` in `device_config.ini`, minimum five);
+  **press power** to bring it back, **hold power** to start the player after
+  all. The screen is told apart from an ordinary boot by a marker the player
+  keeps on the writable partition while it is running -- and drops as it
+  switches itself off -- so a reboot, a crash or a firmware update still starts
+  the player as usual. `[power] charge_screen = 0` in `device_config.ini` turns
+  the screen off entirely.
 - **Power → Hold power for the menu** - what a held power button does. On, the
   default, the hold brings up the power menu and switching off or rebooting
   takes a slide to confirm. Off, the same hold switches the player off where it

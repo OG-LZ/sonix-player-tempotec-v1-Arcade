@@ -21,10 +21,12 @@
 #include "src/gui/board_profile.h"
 #include "src/gui/fonts/fonts.h"
 #include "src/gui/shell/gui.h"
+#include "src/gui/shell/chargescreen.h"
 #include "src/gui/nowplaying/player.h"
 #include "src/gui/settings/powersettings.h"
 #include "src/gui/settings/settings.h"
 #include "src/system/device/adb.h"
+#include "src/system/device/chargemode.h"
 #include "src/system/audio/alsa-controls.h"
 #include "src/system/playback/sleeptimer.h"
 #include "src/system/audio/usbaudio.h"
@@ -2081,6 +2083,31 @@ int main(int argc, char **argv) {
 		.battery_status_file = NULL,
 	};
 #endif
+
+	// --- The charger, with the player off -----------------------------------
+	//
+	// A player that was switched off and is then put on a charger comes up on
+	// the battery screen, not on the library: the cable is the only reason the
+	// board is running at all, and what the user plugged in for is the charge.
+	// Press power to bring the screen back after it has gone dark, hold power
+	// to start the player after all.
+	//
+	// Here, and not later, for two reasons: the screen reads the gauge itself
+	// (battery_read_now), so it needs nothing the services would start, and the
+	// input threads those services start must not be running while it owns the
+	// power key -- otherwise a hold would open the power menu of a player that
+	// has not been built yet.
+	//
+	// chargemode.h is where the boot is told apart from an ordinary one. The
+	// display, the fonts and the language are already up; everything below this
+	// point is what the hold releases.
+	if (chargemode_wanted()) {
+		chargescreen_run(disp, &battery_cfg);
+	}
+	// Whatever came of that -- a hold on the power key, or a boot with no
+	// charger in it -- the player is what is running from here. The marker the
+	// last power-off left behind has done its work either way.
+	chargemode_player_started();
 
 	system_config_t system_cfg = {
 		.battery_cfg = &battery_cfg,
