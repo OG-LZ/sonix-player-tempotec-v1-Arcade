@@ -33,7 +33,13 @@
 #define SCAN_BUTTON_WIDTH bp_pick(184, 240)
 #define SCAN_BUTTON_HEIGHT bp_pick(52, 68)
 #define SCAN_BUTTON_BOTTOM bp_pick(12, 30)
-#define SCAN_CONTENT_GAP bp_pick(10, 16)
+// Space between the two stacked pills at the bottom of the page (Cancel/OK
+// below, Continue-in-background above). Tight on the V1 panel so there is
+// enough room above for the column.
+#define SCAN_PILL_GAP bp_pick(8, 12)
+#define SCAN_BG_BUTTON_HEIGHT bp_pick(44, 50)
+// Gap above the background pill, between it and the lowest text row.
+#define SCAN_CONTENT_GAP bp_pick(6, 12)
 // The space between the four things in the middle of the page: the note and
 // the three lines of text under it.
 #define SCAN_ROW_GAP bp_pick(6, 10)
@@ -799,13 +805,13 @@ void libraryscan_init(gui_config_t *cfg) {
 
 	int content_top = settingsrow_content_top(cfg);
 	int content_height = cfg->screen_height - content_top;
-	// Always stay above the bottom action pill (Cancel while scanning, OK when
-	// finished) so the last line of text never slides under it.
-	content_height -= SCAN_BUTTON_HEIGHT + SCAN_BUTTON_BOTTOM + SCAN_CONTENT_GAP;
-	// The "Continue in background" pill sits above the action pill and also
-	// has to stay clear of the content column; reserve the same gap on both
-	// sides of it so the layout math is the same whether it is visible or not.
-	content_height -= 50 + SCAN_CONTENT_GAP;
+	// Always stay above the two stacked bottom pills so the last line of text
+	// never slides under the "Continue in background" action. The pills sit
+	// against the bottom edge with SCAN_BUTTON_BOTTOM padding, the action pill
+	// above that, with SCAN_PILL_GAP between them, and SCAN_CONTENT_GAP clear
+	// above the background pill.
+	content_height -= SCAN_BUTTON_HEIGHT + SCAN_BUTTON_BOTTOM + SCAN_PILL_GAP +
+					  SCAN_BG_BUTTON_HEIGHT + SCAN_CONTENT_GAP;
 	// Container padding already eats cfg->padding off the top and bottom via
 	// lv_obj_set_style_pad_all(); don't subtract it again here.
 
@@ -905,12 +911,20 @@ void libraryscan_init(gui_config_t *cfg) {
 	lv_obj_set_hidden(ok_button, true);
 
 	// A third, quieter action: leave the page while the job keeps running. It
-	// sits above the two pill buttons, which occupy the same bottom slot in
-	// turn.
+	// sits above the Cancel/OK pill (the two share SCAN_PILL_GAP between them)
+	// and below the content column, which reserves SCAN_CONTENT_GAP of space
+	// above it.
 	background_button = make_button(libraryscan_screen, "libraryscan_background", theme()->surface_pressed, background_cb);
 	lv_obj_set_width(background_button, cfg->screen_width - 2 * cfg->padding);
-	lv_obj_set_height(background_button, 50);
-	lv_obj_align(background_button, LV_ALIGN_BOTTOM_MID, 0, -(cfg->padding * 2 + 80));
+	lv_obj_set_height(background_button, SCAN_BG_BUTTON_HEIGHT);
+	lv_obj_align(background_button, LV_ALIGN_BOTTOM_MID, 0,
+				 -(SCAN_BUTTON_BOTTOM + SCAN_BUTTON_HEIGHT + SCAN_PILL_GAP));
+	// Quieter look than the Cancel/OK pill: slightly smaller text and the
+	// secondary text colour (already applied via theme_ink_on(surface_pressed)).
+	lv_obj_t *bg_label = lv_obj_get_child(background_button, 0);
+	if (bg_label && bp_is_tempotec_v1()) {
+		lv_obj_set_style_text_font(bg_label, &font_ui_18, 0);
+	}
 	lv_obj_set_hidden(background_button, true);
 
 	poll_timer = lv_timer_create(poll_cb, SCAN_POLL_MS, NULL);
