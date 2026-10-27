@@ -200,7 +200,7 @@ static int check_strings(const char *language_dir, char names[][32], int max_nam
 		languages++;
 	}
 	closedir(dir);
-	assert(languages == 10);
+	assert(languages == 11);
 	assert(languages <= max_names);
 	assert(lang_set("English"));
 	return languages;
