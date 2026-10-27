@@ -1402,3 +1402,40 @@ dark screen is not the cost the sleep saves -- and the player waits, awake, for
 either the cable or the guard's shutdown at 1%. Above 10% the ordinary standby
 applies: a full battery is allowed its sleep, and a device left for weeks on a
 shelf is still going to die the way any device left for weeks on a shelf does.
+
+
+## Russian comes back
+
+`Russian.ini` is back in `sonix-packer/assets/V1/usr/resource/sonix/language/`,
+beside the ten that stayed, so the picker offers Русский again in Settings
+and on the first-boot panel. Only Chinese is still out. As before, the picker
+needed nothing told to it: `lang_list()` scans the folder for `*.ini` and
+reads each file's `[Language: …]` header for the name it shows.
+
+The text is the recovered file, brought up to date rather than retranslated:
+strings added while Russian was gone -- the stock-gestures row and its note,
+the control-centre volume row, ListenBrainz, Smart Mix, the metronome and the
+battery guard -- are translated too, and its lines are back in the order the
+other files share, so all eleven line up. Nothing else needed a font or a
+layout: Cyrillic was already drawn for Ukrainian and for tags, and the Russian
+keyboard layout never left.
+
+The collateral keyed off the name comes back with it: the first-boot greeting
+("Добро пожаловать" -- still the wide one the welcome page is sized around),
+the `ru` row in the podcast directory's language table, and the Ko-fi/Boosty
+choice in the easter egg, with
+`usr/resource/sonix/gui/boosty-qr-code.png` beside the Ko-fi code. Ko-fi takes
+no cards issued in Russia, so the Russian interface gets Boosty again and
+every other language gets Ko-fi.
+
+The `lang_init()` fallback written for the removal stays, for the one name
+that is still gone: a device whose settings say Chinese starts in English and
+has the name written back once. A device that kept Russian in its settings and
+skipped the builds without it simply loads Russian again; one that ran those
+builds was already corrected to English, and picks Русский from the list like
+any other change.
+
+The UI tests that walk the language folder asserted ten files; they now
+assert eleven, and a twelfth language is meant to fail them until its texts
+are checked the same way. The main-menu test switches into Russian as it does
+into Ukrainian, and checks the name the file declares for itself.
