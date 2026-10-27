@@ -33,7 +33,13 @@
 #define SCAN_BUTTON_WIDTH bp_pick(184, 240)
 #define SCAN_BUTTON_HEIGHT bp_pick(52, 68)
 #define SCAN_BUTTON_BOTTOM bp_pick(12, 30)
-#define SCAN_CONTENT_GAP bp_pick(10, 16)
+// Space between the two stacked pills at the bottom of the page (Cancel/OK
+// below, Continue-in-background above). Tight on the V1 panel so there is
+// enough room above for the column.
+#define SCAN_PILL_GAP bp_pick(8, 12)
+#define SCAN_BG_BUTTON_HEIGHT bp_pick(44, 50)
+// Gap above the background pill, between it and the lowest text row.
+#define SCAN_CONTENT_GAP bp_pick(6, 12)
 // The space between the four things in the middle of the page: the note and
 // the three lines of text under it.
 #define SCAN_ROW_GAP bp_pick(6, 10)
@@ -64,6 +70,20 @@ static char shown_file[512];
 
 static const char *sd_root;
 
+static void scan_fit_note(void);
+
+// Hide any secondary row whose text has just been cleared so that it stops
+// taking a line in the flex column, then re-measure and re-shrink the note
+// art around whatever rows are actually visible. Called after poll_cb and
+// show_finished update the labels.
+static void scan_refit(void) {
+	lv_obj_set_hidden(progress_label, lv_label_get_text(progress_label)[0] == '\0');
+	lv_obj_set_hidden(phase_label, lv_label_get_text(phase_label)[0] == '\0');
+	lv_obj_set_hidden(genius_progress_label, lv_label_get_text(genius_progress_label)[0] == '\0');
+	lv_obj_set_hidden(eta_label, lv_label_get_text(eta_label)[0] == '\0');
+	scan_fit_note();
+}
+
 static void show_finished(int found) {
 	// The graph's own verdict is independent of the track count: a scan that
 	// changed no music still rebuilds or reuses the graph, and this line says
@@ -72,7 +92,7 @@ static void show_finished(int found) {
 	library_scan_progress(&progress);
 	lv_label_set_text_fmt(count_label, "%d", found);
 	lv_label_set_text(status_label, found == 1 ? tr("libraryscan_track_found") : tr("libraryscan_tracks_found"));
-	lv_obj_set_hidden(progress_label, true);
+	lv_label_set_text(progress_label, "");
 	lv_label_set_text(phase_label,
 					  progress.genius_failed ? tr("libraryscan_smartmix_failed") :
 					  progress.genius_published ? tr("libraryscan_smartmix_ready") : "");
@@ -82,6 +102,8 @@ static void show_finished(int found) {
 	lv_obj_set_hidden(cancel_button, true);
 	lv_obj_set_hidden(ok_button, false);
 	lv_obj_set_hidden(background_button, true);
+
+	scan_refit();
 }
 
 static void poll_cb(lv_timer_t *timer) {
@@ -137,12 +159,16 @@ static void poll_cb(lv_timer_t *timer) {
 				snprintf(shown_file, sizeof(shown_file), "%s", item);
 				lv_label_set_text(progress_label, shown_file);
 			}
-			lv_obj_set_hidden(progress_label, false);
 		} else {
 			// No music file is being read during a graph phase; the graph's own
 			// line above carries the status instead.
-			lv_obj_set_hidden(progress_label, true);
+			lv_label_set_text(progress_label, "");
 		}
+
+		// Update which secondary rows are visible and re-size the note art to
+		// fit whatever is on screen this poll (music filename only, or phase
+		// lines, or neither at the handoff between them).
+		scan_refit();
 		return;
 	}
 
@@ -192,10 +218,16 @@ void libraryscan_begin(void) {
 	// existing index. Returning to this page must never wipe/restart the scan.
 	if (!library_scan_running() && !library_scan_start(sd_root)) {
 		// Nothing to scan (no card, or a scan is somehow already going).
+		lv_label_set_text(count_label, "");
 		lv_label_set_text(status_label, tr("no_card_to_scan"));
+		lv_label_set_text(progress_label, "");
+		lv_label_set_text(phase_label, "");
+		lv_label_set_text(genius_progress_label, "");
+		lv_label_set_text(eta_label, "");
 		lv_obj_set_hidden(cancel_button, true);
 		lv_obj_set_hidden(ok_button, false);
 		lv_obj_set_hidden(background_button, true);
+		scan_refit();
 		return;
 	}
 
@@ -580,41 +612,60 @@ static lv_obj_t *make_button(lv_obj_t *parent, const char *text, lv_color_t colo
 // ---------------------------------------------------------------------------
 
 static void scan_fit_note(void) {
-	if (!scan_container || !scan_note || !count_label || !status_label || !progress_label) {
+	if (!scan_container || !scan_note || !count_label || !status_label || !progress_label ||
+		!phase_label || !genius_progress_label || !eta_label) {
 		return;
 	}
 
-	// On the V1 the file name is one line ending in an ellipsis, the way
-	// LV_LABEL_LONG_DOT is meant to draw it. A label left to size itself never
-	// overflows its own height, so LVGL never brings the dots in and a long
-	// name simply wraps to a second line -- which is the line this page was
-	// clipping. Pinning the height gives the ellipsis a boundary, as the tile
-	// captions do in gridpage.c.
+	// Pin any secondary row to a single line so LV_LABEL_LONG_DOT has a
+	// boundary to put the ellipsis at. A label left to size itself grows to
+	// whatever its text needs and wraps onto a second line before it ever
+	// dots; on this panel that second line is exactly the one that used to be
+	// pushed under the buttons. Height is pinned whether the label is visible
+	// or not so that the pin is already in place the moment scan_refit() shows
+	// the row.
 	if (bp_is_tempotec_v1()) {
 		lv_obj_set_height(progress_label, lv_font_get_line_height(&font_ui_16));
 		lv_obj_set_style_text_line_space(progress_label, 0, 0);
+		lv_obj_set_height(phase_label, lv_font_get_line_height(&font_ui_22));
+		lv_obj_set_style_text_line_space(phase_label, 0, 0);
+		lv_obj_set_height(genius_progress_label, lv_font_get_line_height(&font_ui_18));
+		lv_obj_set_style_text_line_space(genius_progress_label, 0, 0);
+		lv_obj_set_height(eta_label, lv_font_get_line_height(&font_ui_18));
+		lv_obj_set_style_text_line_space(eta_label, 0, 0);
 	}
 
-	// The file name is hidden between files and a hidden object takes no part
-	// in the layout, so it is measured with the flag off: the page has to be
-	// laid out for the moment the name is there. The status sentence is
-	// measured too, because in some languages it wraps to two lines.
-	bool hidden = lv_obj_is_hidden(progress_label);
-	lv_obj_set_hidden(progress_label, false);
+	// Hidden objects take no part in flex layout. scan_refit() has already
+	// set each row's hidden flag to match whether it carries text, so the
+	// layout measured here *is* the layout on screen: the note takes whatever
+	// room the visible rows leave it.
 	lv_obj_update_layout(scan_container);
-	int text = lv_obj_get_height(count_label) + lv_obj_get_height(status_label) +
-			   lv_obj_get_height(progress_label);
-	if (hidden) {
-		lv_obj_set_hidden(progress_label, true);
-	}
+	int text = 0;
+	int text_rows = 0; // the visible labels below the note
+#define MEASURE_ROW(obj)                                                                                              \
+	do {                                                                                                               \
+		if (!lv_obj_is_hidden(obj)) {                                                                                  \
+			text += lv_obj_get_height(obj);                                                                           \
+			text_rows++;                                                                                               \
+		}                                                                                                              \
+	} while (0)
+	MEASURE_ROW(count_label);
+	MEASURE_ROW(status_label);
+	MEASURE_ROW(progress_label);
+	MEASURE_ROW(phase_label);
+	MEASURE_ROW(genius_progress_label);
+	MEASURE_ROW(eta_label);
+#undef MEASURE_ROW
 
-	// Note, count, status line, file name: three gaps between the four, and
-	// the note's own pad_bottom under it. `size` is the side of the note as it
-	// is drawn; the box it takes in the column is that plus the padding, which
-	// is what lv_obj_set_size() sizes.
+	// Gaps between the note and the first text row, and between each pair of
+	// text rows after that (N items = N-1 gaps), plus the note's own pad_bottom
+	// underneath it. `size` is the side of the note as drawn; the box it
+	// occupies in the column is that plus its pad_bottom, which is what
+	// lv_obj_set_size() sizes.
+	int gaps = text_rows > 0 ? text_rows : 0;
 	int pad_bottom = lv_obj_get_style_pad_bottom(scan_note, 0);
 	int size = lv_obj_get_height(scan_container) - lv_obj_get_style_pad_top(scan_container, 0) -
-			   lv_obj_get_style_pad_bottom(scan_container, 0) - text - SCAN_ROW_GAP * 3 - pad_bottom;
+			   lv_obj_get_style_pad_bottom(scan_container, 0) - text - SCAN_ROW_GAP * gaps - pad_bottom;
 
 	if (size > SCAN_NOTE_MAX) {
 		size = SCAN_NOTE_MAX;
@@ -754,15 +805,15 @@ void libraryscan_init(gui_config_t *cfg) {
 
 	int content_top = settingsrow_content_top(cfg);
 	int content_height = cfg->screen_height - content_top;
-	if (bp_is_tempotec_v1()) {
-		// Keep the live count and the file being read above the bottom action,
-		// which otherwise covers the last line on this short panel.
-		content_height -= SCAN_BUTTON_HEIGHT + SCAN_BUTTON_BOTTOM + SCAN_CONTENT_GAP;
-	}
-	// The three Smart Mix phase lines and the background button take room the
-	// note art would otherwise grow into; the note shrinks to fit in
-	// scan_fit_note(). Mirrors the upstream panel's reserved height.
-	content_height -= cfg->padding * 2 + 150;
+	// Always stay above the two stacked bottom pills so the last line of text
+	// never slides under the "Continue in background" action. The pills sit
+	// against the bottom edge with SCAN_BUTTON_BOTTOM padding, the action pill
+	// above that, with SCAN_PILL_GAP between them, and SCAN_CONTENT_GAP clear
+	// above the background pill.
+	content_height -= SCAN_BUTTON_HEIGHT + SCAN_BUTTON_BOTTOM + SCAN_PILL_GAP +
+					  SCAN_BG_BUTTON_HEIGHT + SCAN_CONTENT_GAP;
+	// Container padding already eats cfg->padding off the top and bottom via
+	// lv_obj_set_style_pad_all(); don't subtract it again here.
 
 	lv_obj_t *container = lv_obj_create(libraryscan_screen);
 	lv_obj_set_size(container, lv_pct(100), content_height);
@@ -799,6 +850,7 @@ void libraryscan_init(gui_config_t *cfg) {
 	// found" is long enough to do on 240 px.
 	lv_obj_set_width(status_label, lv_pct(100));
 	lv_obj_set_style_text_align(status_label, LV_TEXT_ALIGN_CENTER, 0);
+	lv_label_set_long_mode(status_label, LV_LABEL_LONG_WRAP);
 	lv_obj_add_style(status_label, &theme_style_text, 0);
 	lv_obj_set_style_text_font(status_label, &font_ui_26, 0);
 
@@ -810,15 +862,11 @@ void libraryscan_init(gui_config_t *cfg) {
 	lv_obj_set_style_text_font(progress_label, &font_ui_16, 0);
 	lv_obj_set_style_text_align(progress_label, LV_TEXT_ALIGN_CENTER, 0);
 
-	// Measured with the file name still on screen: it is the last line and the
-	// one that was being cut off.
-	scan_fit_note();
-	lv_obj_set_hidden(progress_label, true);
-
 	// The Smart Mix graph's own status, one line per active phase.
 	phase_label = lv_label_create(container);
 	lv_label_set_text(phase_label, "");
 	lv_obj_set_width(phase_label, lv_pct(100));
+	lv_label_set_long_mode(phase_label, LV_LABEL_LONG_DOT);
 	lv_obj_set_style_text_align(phase_label, LV_TEXT_ALIGN_CENTER, 0);
 	lv_obj_add_style(phase_label, &theme_style_text, 0);
 	lv_obj_set_style_text_font(phase_label, &font_ui_22, 0);
@@ -827,6 +875,7 @@ void libraryscan_init(gui_config_t *cfg) {
 	genius_progress_label = lv_label_create(container);
 	lv_label_set_text(genius_progress_label, "");
 	lv_obj_set_width(genius_progress_label, lv_pct(100));
+	lv_label_set_long_mode(genius_progress_label, LV_LABEL_LONG_DOT);
 	lv_obj_set_style_text_align(genius_progress_label, LV_TEXT_ALIGN_CENTER, 0);
 	lv_obj_add_style(genius_progress_label, &theme_style_text_dim, 0);
 	lv_obj_set_style_text_font(genius_progress_label, &font_ui_18, 0);
@@ -835,9 +884,21 @@ void libraryscan_init(gui_config_t *cfg) {
 	eta_label = lv_label_create(container);
 	lv_label_set_text(eta_label, "");
 	lv_obj_set_width(eta_label, lv_pct(100));
+	lv_label_set_long_mode(eta_label, LV_LABEL_LONG_DOT);
 	lv_obj_set_style_text_align(eta_label, LV_TEXT_ALIGN_CENTER, 0);
 	lv_obj_add_style(eta_label, &theme_style_text_dim, 0);
 	lv_obj_set_style_text_font(eta_label, &font_ui_18, 0);
+
+	// All labels are created before the first fit; scan_fit_note() pins any
+	// single-line rows to one line height so that LV_LABEL_LONG_DOT can bring
+	// the ellipsis in instead of wrapping, then sizes the note art to whatever
+	// room is left. It is re-run on every poll so that phase changes (which
+	// show and hide the Smart Mix rows) shrink or grow the note accordingly.
+	lv_obj_set_hidden(progress_label, true);
+	lv_obj_set_hidden(phase_label, true);
+	lv_obj_set_hidden(genius_progress_label, true);
+	lv_obj_set_hidden(eta_label, true);
+	scan_fit_note();
 
 	// Another face or another text size re-measures every line here, so the
 	// note has to give way again.
@@ -850,12 +911,20 @@ void libraryscan_init(gui_config_t *cfg) {
 	lv_obj_set_hidden(ok_button, true);
 
 	// A third, quieter action: leave the page while the job keeps running. It
-	// sits above the two pill buttons, which occupy the same bottom slot in
-	// turn.
+	// sits above the Cancel/OK pill (the two share SCAN_PILL_GAP between them)
+	// and below the content column, which reserves SCAN_CONTENT_GAP of space
+	// above it.
 	background_button = make_button(libraryscan_screen, "libraryscan_background", theme()->surface_pressed, background_cb);
 	lv_obj_set_width(background_button, cfg->screen_width - 2 * cfg->padding);
-	lv_obj_set_height(background_button, 50);
-	lv_obj_align(background_button, LV_ALIGN_BOTTOM_MID, 0, -(cfg->padding * 2 + 80));
+	lv_obj_set_height(background_button, SCAN_BG_BUTTON_HEIGHT);
+	lv_obj_align(background_button, LV_ALIGN_BOTTOM_MID, 0,
+				 -(SCAN_BUTTON_BOTTOM + SCAN_BUTTON_HEIGHT + SCAN_PILL_GAP));
+	// Quieter look than the Cancel/OK pill: slightly smaller text and the
+	// secondary text colour (already applied via theme_ink_on(surface_pressed)).
+	lv_obj_t *bg_label = lv_obj_get_child(background_button, 0);
+	if (bg_label && bp_is_tempotec_v1()) {
+		lv_obj_set_style_text_font(bg_label, &font_ui_18, 0);
+	}
 	lv_obj_set_hidden(background_button, true);
 
 	poll_timer = lv_timer_create(poll_cb, SCAN_POLL_MS, NULL);
