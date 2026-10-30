@@ -1,5 +1,21 @@
 
-***************** WORK IN PROGRESS ***********************
+*WIP*
+Music and gaming together: playing games without interrupting music.
+
+Pocket Arcade: introducing the 12-game collection:
+
+2048 — Slide and merge numbered tiles in this addictive puzzle game.
+Stack It — Test your reflexes and precision by dropping moving blocks onto a growing tower.
+Pocket Racer — Race through three lanes of traffic, dodging obstacles and surviving as long as possible.
+Brick Breaker — Control your paddle, bounce the ball, and smash every brick to clear the board.
+Minesweeper — Uncover hidden mines using logic and deduction.
+Box Pusher — A Sokoban-style puzzle adventure featuring eight handcrafted challenges.
+Tiny Golf — Navigate three miniature golf courses filled with obstacles.
+Orbit Hop — A fast-paced, one-touch timing challenge.
+Melody Memory — Test your musical memory by repeating increasingly complex sequences of notes.
+Guess That Song — Turn your own music library into a trivia game!
+Beat Raiders — A music-reactive, three-lane arcade shooter.
+Pocket Dungeon: Relics of the Lantern — Descend through nine increasingly dangerous depths, battle terrifying creatures, discover powerful relics, upgrade your hero, and uncover the dark secrets buried beneath a dying world.
 
 ![Sonix Player for TempoTec Variations V1 with the Tokyo Night main menu](screenshots/readme-banner.png)
 
