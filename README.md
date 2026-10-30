@@ -1,3 +1,6 @@
+
+***************** WORK IN PROGRESS ***********************
+
 ![Sonix Player for TempoTec Variations V1 with the Tokyo Night main menu](screenshots/readme-banner.png)
 
 This repository is a community port of the original **[Sonix Player](https://github.com/Jepl4r/sonix-player)** project by **[Jepl4r](https://github.com/Jepl4r)** — a replacement music player for the HiBy R3 Pro II and HiBy R1 — to the **TempoTec Variations V1**. The player and the firmware packer come from that project; this fork adds the V1 board profile, the V1 packaging path and the V1 documentation. The HiBy builds that upstream carries are not part of this fork: one tree, one board, one image. See [Credits](#credits).
