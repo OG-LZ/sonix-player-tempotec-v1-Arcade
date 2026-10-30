@@ -1,0 +1,28 @@
+#include "dungeon_world_r1.h"
+static const dg_world_page pages[DG_WORLD_PAGES] = {
+ {"The Second Count","Oressa counted forty-one residents who had never been born. They survived the edit.",0u},
+ {"The Silent Bells","We rang them for six weeks. My son has never heard my voice.",3u},
+ {"The Unlisted Door","The wall was built around the doorway after the room had gone.",7u},
+ {"The Borrowed Cure","I healed her. I did not ask who inherited the wound.",5u},
+ {"The Blank Province","Our map shows no town. I have paid its taxes for twenty years.",8u},
+ {"The Ninth Beat","Eight names are sung. At the ninth, the children are silent.",9u},
+ {"The Stone That Counts","The measure is wrong by one, even when the wall is not.",7u},
+ {"The Child and the Wick","Mother promised to leave the light burning. Someone took it.",1u},
+ {"The Erasure Order","My orders arrived before the people were born.",6u},
+ {"The Second Place","Melira has always laid two cups. I have never asked why.",2u},
+ {"The Last Cartographer","A blank place is not an empty place. Do not enter it alone.",10u},
+ {"The Quiet Veteran","The bells stopped. I know. I still hear them.",9u},
+ {"The Missing Name","The plaque has room for one more word. Nobody remembers it.",0u},
+ {"The Ledger Margin","The dead are absent from the calculation. The sum is exact.",6u},
+ {"The Prison Light","Sereth kept the lamps lit. None of us asked what they burned.",4u},
+ {"The Witness Writes","We did not ask to return. We asked not to be deleted.",11u},
+ {"Oressan Counterfoil","The register names forty-one. The clerk signed for forty. The forty-first paid the tax.",0u},
+ {"Vharn's Mortar","We sealed the passage from the outside. The knocks began on our side of the wall.",1u},
+ {"Sibrell's Clapper","The bells made their attacks audible. Our children heard nothing afterward.",2u},
+ {"Kethis Wick","The lantern kept one prisoner's name alight. We called that mercy.",3u},
+ {"Corvane Transfer","Patient recovered. Burden received by an unnamed household. No follow-up ordered.",4u},
+ {"Marroth's Margin","A name was removed from the stone. Its indentation survived beneath the dust.",5u},
+ {"Ilsk's Unroad","The road was omitted from the map. Its travelers continued to arrive.",6u},
+ {"Dunhollow Receipt","Eight Houses ordered the erasure. Only the sexton was made to sign.",7u},
+};
+const dg_world_page *dg_world_page_at(unsigned id) {return id<DG_WORLD_PAGES?&pages[id]:0;}

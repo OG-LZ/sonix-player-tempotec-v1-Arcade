@@ -9,6 +9,7 @@
 #include "src/gui/calculator/calculator.h"
 #include "src/gui/ebook/ebookpage.h"
 #include "src/gui/flappybird/flappybird.h"
+#include "src/gui/pocket_arcade/pocket_arcade.h"
 #include "src/gui/gearboy/gearboypage.h"
 #include "src/gui/library/audiobooks.h"
 #include "src/gui/library/filespage.h"
@@ -58,6 +59,9 @@ static bool more_tokyo_icon(const char *label, const lv_image_dsc_t **icon, them
 	} else if (strcmp(label, "file_explorer") == 0) {
 		*icon = &icon_folder;
 		*tone = THEME_SEMANTIC_BLUE;
+	} else if (strcmp(label, "arcade") == 0) {
+		*icon = &icon_menu_arcade;
+		*tone = THEME_SEMANTIC_PURPLE;
 	} else if (strcmp(label, "flappy_bird") == 0) {
 		*icon = &icon_bird;
 		*tone = THEME_SEMANTIC_PURPLE;
@@ -147,6 +151,8 @@ static const grid_entry_t MORE_ENTRIES[] = {
 	{"file_explorer", &icon_menu_file_explorer, NULL, filespage_open},
 	// An action: the artwork is read from the resource tree on the way in.
 	{"flappy_bird", &icon_menu_flappy_bird, NULL, flappybird_open},
+	/* Music stays owned by Sonix; Arcade is an ordinary More action. */
+	{"arcade", &icon_menu_arcade, NULL, pocket_arcade_open},
 	// Both of these are actions rather than screens for the file
 	// manager's reason: the calculator repaints its display from the sum
 	// it was left holding, and the notes shelf reads the card.

@@ -38,6 +38,7 @@
 #include "src/gui/gearboy/gearboypage.h"
 #include "src/gui/gearboy/gearboysettings.h"
 #include "src/gui/flappybird/flappybird.h"
+#include "src/gui/pocket_arcade/pocket_arcade.h"
 #include "src/gui/gearboy/gearboyplay.h"
 #include "src/gui/shell/main_menu.h"
 #include "src/gui/library/medialist.h"
@@ -735,6 +736,8 @@ void gui_init(gui_config_t *cfg) {
 	gearboysettings_init(cfg); // before the page: its gear opens this
 	gearboypage_init(cfg);
 	flappybird_init(cfg);
+	/* Lazy registration: no game timers until Arcade is opened. */
+	pocket_arcade_init(cfg);
 	// before morepage: the books tile opens the shelf, and the shelf opens the
 	// reader.
 	ebookreader_init(cfg);

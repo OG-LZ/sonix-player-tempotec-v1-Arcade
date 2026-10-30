@@ -1,4 +1,5 @@
 #include "audio.h"
+#include "src/system/audio/arcade_music.h"
 #include "src/system/audio/alsa-controls.h"
 #include "src/system/bluetooth/bluetooth.h"
 #include "src/system/decode/decode.h"
@@ -2936,6 +2937,8 @@ static void play_wav_file(const char *filepath) {
 			}
 		}
 
+		/* Passive music meter; never changes samples or playback state. */
+		arcade_music_feed_pcm(buffer, (int)frames_to_write, info.channels, info.out_bits);
 		health_lap(&health, STAGE_EFFECTS);
 		snd_pcm_sframes_t written = pcm_write_recover(&pcm_handle, buffer, frames_to_write, info.channels,
 													  info.sample_rate, info.out_bits, &period_size);
@@ -3751,6 +3754,9 @@ static void play_decoded_file(const char *filepath, decode_format_t format) {
 			}
 		}
 
+		/* DoP is not PCM; never inspect passthrough bitstreams. */
+		if (!passthrough)
+			arcade_music_feed_pcm(buffer, (int)frames_read, channels, out_bits);
 		health_lap(&health, STAGE_EFFECTS);
 		snd_pcm_sframes_t written =
 			pcm_write_recover(&pcm_handle, buffer, frames_read, channels, out_rate, out_bits, &period_size);

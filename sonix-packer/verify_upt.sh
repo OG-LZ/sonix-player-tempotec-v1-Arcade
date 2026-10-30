@@ -125,8 +125,10 @@ if $EXPECT_SONIX; then
 		echo "Error: stock usr/bin/hiby_player remains in the rootfs." >&2
 		exit 1
 	fi
-	INFO="$WORK/system-info.json"
-	unsquashfs -cat "$WORK/rootfs.squashfs" usr/resource/sonix/components/system-info.json > "$INFO"
+	INSPECT_ROOT="$WORK/inspect-rootfs"
+	mkdir -p "$INSPECT_ROOT"
+	unsquashfs -f -d "$INSPECT_ROOT" "$WORK/rootfs.squashfs" usr/resource/sonix/components/system-info.json >/dev/null
+	INFO="$INSPECT_ROOT/usr/resource/sonix/components/system-info.json"
 	grep -qE '"device-name"[[:space:]]*:[[:space:]]*"TempoTec V1"' "$INFO" || {
 		echo "Error: system-info.json does not identify TempoTec V1." >&2; exit 1;
 	}
@@ -136,8 +138,10 @@ if $EXPECT_SONIX; then
 	# mode refuses to connect without one. The failure it causes on the device
 	# ("no reply", or nothing at all) does not say a file is missing, so it is
 	# checked here instead of being found in the field.
-	CA_BUNDLE="$WORK/cert.pem"
-	if ! unsquashfs -cat "$WORK/rootfs.squashfs" etc/ssl/cert.pem > "$CA_BUNDLE" 2>/dev/null; then
+	CA_BUNDLE="$INSPECT_ROOT/etc/ssl/cert.pem"
+	unsquashfs -f -d "$INSPECT_ROOT" "$WORK/rootfs.squashfs" etc/ssl/cert.pem >/dev/null 2>&1 || true
+	if [ ! -f "$CA_BUNDLE" ]; then
+		mkdir -p "$(dirname "$CA_BUNDLE")"
 		: > "$CA_BUNDLE"
 	fi
 	grep -q '^-----BEGIN CERTIFICATE-----' "$CA_BUNDLE" || {
