@@ -346,3 +346,16 @@ Third-party components carried in the tree, or fetched by the build, keep their 
 
 The licence notice for each component sits with it in the source tree; [LICENSE](LICENSE) covers the project as a whole. The official TempoTec V1 firmware used as the base of a build is not part of this repository, and TempoTec, HiBy and the other vendors own their names and firmware.
 
+
+## Pocket Arcade — 1.4.4.3 Development Preview
+
+Pocket Arcade brings a collection of 12 games to Sonix Player
+on the TempoTec Variations V1, including the flagship
+**Pocket Dungeon: Relics of the Lantern**.
+
+The 1.4.4.3 development firmware has successfully booted on
+physical V1 hardware. Individual features are still undergoing
+validation.
+
+See [Arcade 1.4.4.3 release notes](docs/arcade-1.4.4.3.md)
+for features, compatibility information, and known limitations.
