@@ -1,21 +1,29 @@
+## Pocket Arcade *(WIP)*
 
-*WIP*
-Music and gaming together: playing games without interrupting music.
+**Pocket Arcade** is a 12-game collection for the **TempoTec Variations V1**, playing simple games without interrupting music.  
 
-Pocket Arcade: introducing the 12-game collection:
+### Game Collection
 
-2048 — Slide and merge numbered tiles in this addictive puzzle game.
-Stack It — Test your reflexes and precision by dropping moving blocks onto a growing tower.
-Pocket Racer — Race through three lanes of traffic, dodging obstacles and surviving as long as possible.
-Brick Breaker — Control your paddle, bounce the ball, and smash every brick to clear the board.
-Minesweeper — Uncover hidden mines using logic and deduction.
-Box Pusher — A Sokoban-style puzzle adventure featuring eight handcrafted challenges.
-Tiny Golf — Navigate three miniature golf courses filled with obstacles.
-Orbit Hop — A fast-paced, one-touch timing challenge.
-Melody Memory — Test your musical memory by repeating increasingly complex sequences of notes.
-Guess That Song — Turn your own music library into a trivia game!
-Beat Raiders — A music-reactive, three-lane arcade shooter.
-Pocket Dungeon: Relics of the Lantern — Descend through nine increasingly dangerous depths, battle terrifying creatures, discover powerful relics, upgrade your hero, and uncover the dark secrets buried beneath a dying world.
+- **2048** — Slide and merge numbered tiles in this addictive puzzle game.  
+- **Stack It** — Drop moving blocks onto a growing tower with perfect timing.  
+- **Pocket Racer** — Dodge traffic and survive as long as possible in a three-lane arcade racer.  
+- **Brick Breaker** — Bounce the ball, control the paddle, and clear the wall of bricks.  
+- **Minesweeper** — Use logic and deduction to uncover mines without triggering one.  
+- **Box Pusher** — Solve handcrafted Sokoban-style puzzles with careful positioning.  
+- **Tiny Golf** — Take on three miniature golf courses filled with obstacles.  
+- **Orbit Hop** — A one-touch timing game built around rhythm and precision.  
+- **Melody Memory** — Repeat increasingly complex note patterns to test your memory.  
+- **Guess That Song** — Turn your music library into a trivia challenge.  
+- **Beat Raiders** — A music-reactive, three-lane arcade shooter.  
+- **Pocket Dungeon: Relics of the Lantern** — Descend through nine dangerous depths, battle terrifying creatures, discover powerful relics, and uncover the secrets of a dying world.
+
+### Development Status
+
+Pocket Arcade is currently in active development.  
+The long-term vision is to create a polished set of games that can coexist with Sonix Player’s music-first experience — with **Pocket Dungeon** serving as the flagship title.
+All games have been tested on real hardware, the TempoTec V1, and are all currently playable. 
+
+### Sonix Player
 
 ![Sonix Player for TempoTec Variations V1 with the Tokyo Night main menu](screenshots/readme-banner.png)
 
